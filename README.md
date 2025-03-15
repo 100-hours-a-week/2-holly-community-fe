@@ -1,2 +1,3 @@
-# 2-holly-community-api
-5주차 과제: spring으로 API구현
+### spring boot로 API구현
+
+### 3-4주차 frontend 연동
