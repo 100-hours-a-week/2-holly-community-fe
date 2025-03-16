@@ -1,5 +1,5 @@
 import { renderHeader } from "/js/components/header.js";
-import { fetchPost, deletePost } from "../../api/request.js";
+import { fetchPost, deletePost, getComments, getProfile } from "../../api/request.js";
 import { BASE_URL } from "../../api/config.js"; 
 
 let postId;
@@ -20,6 +20,7 @@ async function loadPost() {
 
     try {
         postData = await fetchPost(postId);
+        const comments = await getComments(postData);
         if (!postData) throw new Error("게시글 데이터를 찾을 수 없습니다.");
         // 조회수 증가
         if (!sessionStorage.getItem(`viewed_${postId}`)) {
@@ -29,52 +30,55 @@ async function loadPost() {
         // 게시글 정보 업데이트
         document.querySelector(".post-title").textContent = postData.title;
         document.querySelector(".post-author").textContent = postData.author;
-        document.querySelector(".post-date").textContent = new Date(postData.created_at)
+        document.querySelector(".post-date").textContent = new Date(postData.createdAt)
             .toISOString()
             .slice(0, 19)
-            .replace("T", " ");
-        // document.querySelector(".post-content p").textContent = postData.content;
-        document.querySelector(".post-content").innerHTML = formatContent(postData.content); 
-        if (postData.imgUrl){
-            document.querySelector(".figure").src = postData.imgUrl;
+            .replace("T", " "); 
+        if (postData.image){
+            document.querySelector(".text").innerHTML = formatContent(postData.content); 
+            document.querySelector(".figure").src = postData.image;
+        } else{
+            document.querySelector(".post-content").innerHTML = formatContent(postData.content); 
         }
+
         // 통계 업데이트
         document.getElementById("like-count").innerHTML = `${postData.likes} <br> 좋아요`;
         document.getElementById("view-count").innerHTML = `${postData.views} <br> 조회수`;
-        document.getElementById("comment-count").innerHTML = `${postData.comments.length} <br> 댓글`;
+        document.getElementById("comment-count").innerHTML = `${comments.length} <br> 댓글`;
 
         // 댓글 목록 렌더링
-        renderComments(postData.comments);
+        renderComments(comments);
     } catch (error) {
         console.error("게시글 불러오기 실패:", error);
     }
 }
 
-function renderComments(comments) {
+async function renderComments(comments) {
     const commentList = document.querySelector(".comment-list");
     if (!commentList) return;
     commentList.innerHTML = "";
 
-    comments.forEach(comment => {
+    for (const comment of comments) {
         const commentItem = document.createElement("li");
         commentItem.classList.add("comment-item");
         commentItem.id = `comment-${comment.id}`;
+        const author = await getProfile(comment.authorId);
         commentItem.innerHTML = `
             <div class="comment-meta">
-                <span class="comment-author">${comment.author}</span>
-                <span class="comment-date">${new Date(comment.date)
+                <span class="comment-author">${author.nickname}</span>
+                <span class="comment-date">${new Date(comment.createdAt)
                     .toISOString()
                     .slice(0, 19)
                     .replace("T", " ")}</span>
             </div>
-            <p class="comment-content">${comment.content}</p>
+            <p class="comment-content">${comment.body}</p>
             <div class="comment-actions">
                 <button class="edit-comment" data-id="${comment.id}">수정</button>
                 <button class="delete-comment" data-id="${comment.id}">삭제</button>
             </div>
         `;
         commentList.appendChild(commentItem);
-    });
+    };
 }
 
 // 댓글 추가
@@ -86,34 +90,29 @@ async function addComment() {
     if (!content) return alert("댓글 내용을 입력하세요.");
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-
-    const newComment = {
-        id: postData.comments.length ? postData.comments[postData.comments.length - 1].id + 1 : 1,
-        author: currentUser.nickname,
-        date: new Date().toISOString(),
-        content: content
-    };
-
+ 
     try {
-        postData.comments.push(newComment);
-
-        await fetch(`${BASE_URL}/posts/${postId}`, {
-            method: "PATCH",
+        await fetch(`${BASE_URL}/posts/${postId}/comments`, {
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ comments: postData.comments })
-        });
-
+            body: JSON.stringify({ 
+                postId: postData.id,
+                authorId: currentUser.id, 
+                createdAt: new Date().toISOString(),
+                body: content })
+        }); 
         commentInput.value = "";
-        toggleCommentButton();
-        renderComments(postData.comments);
+        toggleCommentButton(); 
         updateCommentCount();
+        const comments = await getComments(postData);
+        renderComments(comments);
     } catch (error) {
         console.error("댓글 추가 실패:", error);
     }
 }
 
 // 댓글 수정
-function editComment(commentId) {
+async function editComment(commentId) {
     const commentItem = document.getElementById(`comment-${commentId}`);
     if (!commentItem) return;
 
@@ -131,32 +130,26 @@ function editComment(commentId) {
     const saveButton = document.createElement("button");
     saveButton.innerText = "저장";
     saveButton.classList.add("save-comment");
-    saveButton.addEventListener("click", () => saveComment(commentId, inputField.value));
+    saveButton.addEventListener("click", () => updateComment(commentId, inputField.value));
 
     commentItem.appendChild(inputField);
     commentItem.appendChild(saveButton);
 }
 
-// 댓글 저장
-async function saveComment(commentId, newText) {
+async function updateComment(commentId, newText) {
     if (!newText.trim()) {
         alert("댓글 내용을 입력하세요!");
         return;
     }
-
-    const commentIndex = postData.comments.findIndex((c) => c.id === commentId);
-    if (commentIndex === -1) return;
-
-    postData.comments[commentIndex].content = newText;
-
     try {
-        await fetch(`${BASE_URL}/posts/${postId}`, {
+        await fetch(`${BASE_URL}/comments/${commentId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ comments: postData.comments })
+            body: JSON.stringify({ id:commentId, body:newText })
         });
-
-        renderComments(postData.comments);
+        const comments = await getComments(postData);
+        renderComments(comments);
+ 
     } catch (error) {
         console.error("댓글 수정 실패:", error);
     }
@@ -165,28 +158,27 @@ async function saveComment(commentId, newText) {
 // 댓글 삭제
 async function deleteComment(commentId) {
     if (!confirm("댓글을 삭제하시겠습니까?")) return;
-
-    postData.comments = postData.comments.filter((c) => c.id !== commentId);
-
+ 
     try {
-        await fetch(`${BASE_URL}/posts/${postId}`, {
-            method: "PATCH",
+        await fetch(`${BASE_URL}/comments/${commentId}`, {
+            method: "DELETE",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ comments: postData.comments })
+            body: JSON.stringify({ id: commentId })
         });
-
-        renderComments(postData.comments);
         updateCommentCount();
+        const comments = await getComments(postData);
+        renderComments(comments);
     } catch (error) {
         console.error("댓글 삭제 실패:", error);
     }
 }
 
 // 댓글 개수 업데이트
-function updateCommentCount() {
+async function updateCommentCount() {
     const commentCountElement = document.getElementById("comment-count");
+    const comments = await getComments(postData);
     if (commentCountElement) {
-        commentCountElement.innerHTML = `${postData.comments.length} <br>댓글`;
+        commentCountElement.innerHTML = `${comments.length} <br>댓글`;
     }
 }
 
@@ -278,7 +270,7 @@ async function increaseViewCount(postId, currentViews) {
         await fetch(`${BASE_URL}/posts/${postId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ views: updatedViews }),
+            body: JSON.stringify({ id:postId, views: updatedViews }),
         });
         // UI 업데이트
         document.getElementById("view-count").innerHTML = `${updatedViews} <br> 조회수`;
@@ -299,7 +291,7 @@ async function toggleLike() {
         likeCount--;
         isLiked = false;
         likeButton.classList.remove("liked");
-        likeButton.style.backgroundColor = "#474c55";
+        likeButton.style.backgroundColor = "white";
     } else {
         // 좋아요하지 않은 상태이면 좋아요 수 증가
         likeCount++;
@@ -313,8 +305,8 @@ async function toggleLike() {
         const response = await fetch(`${BASE_URL}/posts/${postId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ likes: likeCount }),
-        });
+            body: JSON.stringify({ id:postId, likes: likeCount }),
+        }); 
         if (response.ok) {
             likeButton.innerHTML = `${formatCount(likeCount)} <br>좋아요`;
             // 현재 좋아요 상태를 sessionStorage에 저장

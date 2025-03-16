@@ -3,8 +3,8 @@ import { updatePost, fetchPost } from "../../api/request.js";
 
 let imgUrl = "";
 
-// 파일을 base64 data URL로 변환하기
-function readFileAsDataURL(file) {
+// 파일이 저장된 URL로 변환하기
+function fileAsDataURL(file) {
     return new Promise((resolve, reject) => {
          const reader = new FileReader();
          reader.onload = function(e) {
@@ -68,18 +68,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             const title = titleInput.value;
             const content = contentInput.value;
 
-            // 파일 가져오기
-            const file = fileInput.files[0];
-            if (file) {
-                try {
-                    imgUrl = await readFileAsDataURL(file);
-                } catch (error) {
-                    console.error("이미지 처리 중 에러 발생:", error);
-                }
-            }
+             // 파일 가져오기
+             const file = fileInput.files[0];
+             if (file) {
+                 try {
+                     imgUrl = await fileAsDataURL(file);
+                 } catch (error) {
+                     console.error("이미지 처리 중 에러 발생:", error);
+                 }
+             }
 
             // 업데이트할 데이터를 구성 (imgUrl이 있으면 추가)
             const updatedData = {
+                id:postId,
                 title, content,
                 ...(imgUrl ? { imgUrl } : {})
             };

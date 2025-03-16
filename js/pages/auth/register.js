@@ -92,12 +92,12 @@ document.addEventListener("DOMContentLoaded", function () {
     function validateForm() {
         let isValid = true;
 
-        if (!pictureUpload.files.length) {
-            setError("picture-error", "*프로필 사진을 추가해 주세요.");
-            isValid = false;
-        } else {
-            clearError("picture-error");
-        }
+        // if (!pictureUpload.files.length) {
+        //     setError("picture-error", "*프로필 사진을 추가해 주세요.");
+        //     isValid = false;
+        // } else {
+        //     clearError("picture-error");
+        // }
 
         isValid =
             isValid &&

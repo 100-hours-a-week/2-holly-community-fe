@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         validateForm();
     });
 
-    // 비밀번호 업데이트 버튼 클릭 이벤트 (JSON Server 연동)
+    // 비밀번호 업데이트 버튼 클릭 이벤트
     updateBtn.addEventListener("click", async () => {
         if (!updateBtn.disabled) {
             const newPassword = passwordInput.value;
@@ -105,6 +105,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     document.querySelector(".logout").addEventListener("click", function() {
         localStorage.clear(); 
+    sessionStorage.clear();    
+    location.reload(); // 페이지 새로고침
         alert("로그아웃 되었습니다!");
         window.location.href = "../auth/login.html"; 
       });

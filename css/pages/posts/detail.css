@@ -112,7 +112,7 @@ body {
 }
 
 
-.edit-btn, .edit-comment, .delete-btn, .delete-comment, .modal-btn {
+.edit-btn, .edit-comment, .delete-btn, .delete-comment, .modal-btn, .save-comment {
     padding: 5px 10px;
     margin: 5px;
     border: none;
@@ -130,7 +130,7 @@ body {
     align-items: center;
 }
 .figure{
-    width: 500px;
+    width: 400px;
     height: auto;
     padding-bottom: 20px;
 }
@@ -167,7 +167,11 @@ body {
     border-radius: 5px;
     resize: none;
 }
- 
+
+.edit-input{
+    width: 80%;
+    height: 32px;
+}
 
 .comment-list {
     list-style: none;

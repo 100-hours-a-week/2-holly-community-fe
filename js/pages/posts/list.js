@@ -1,4 +1,4 @@
-import { fetchPosts, getProfiles } from "../../api/request.js";
+import { fetchPosts, getProfiles, getComments, getProfile } from "../../api/request.js";
 
 const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
 const profileImage = currentUser && currentUser.profileImage ? currentUser.profileImage : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // 날짜 및 시간 포맷팅 함수
     const getFormattedDate = (post) => {
-        return new Date(post.created_at).toISOString().replace("T", " ").slice(0, 19);
+        return new Date(post.createdAt).toISOString().replace("T", " ").slice(0, 19);
     }
 
 
@@ -32,16 +32,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.location.href = `../../pages/posts/detail.html?postId=${postId}`; // 상세 페이지 이동
     };
 
-    // 게시글 카드 생성 함수 (비동기)
-    const createPostCard = async (post, profiles) => {
-        const postStats = `좋아요 ${formatNumber(post.likes)} | 댓글 ${formatNumber(post.comments.length)} | 조회수 ${formatNumber(post.views)}`;
+    // 게시글 카드 생성 함수  
+    const createPostCard = async (post, comments) => {
+        const postStats = `좋아요 ${formatNumber(post.likes)} | 댓글 ${formatNumber(comments.length)} | 조회수 ${formatNumber(post.views)}`;
         let authorImgUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
 
-        // profile중에 post.email이 profile의 email과 일치하는 유저의 profileImage
-        const authorProfile = profiles.find(profile => profile.email === post.email);
-        if (authorProfile && authorProfile.profileImage) {
-            authorImgUrl = authorProfile.profileImage;
-        } 
+        const user = await getProfile(post.authorId);  
+        authorImgUrl = user?.profileImage || authorImgUrl;
+        
         const newPost = document.createElement("div");
         newPost.classList.add("post");
         newPost.setAttribute("data-id", post.id);
@@ -51,7 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     <p class="time">${getFormattedDate(post)}</p> 
     <div class="author-container">
       <img src="${authorImgUrl}" alt="${post.author}의 프로필" class="author-img">
-      <p class="author">${post.author}</p>
+      <p class="author">${user.nickname}</p>
     </div>
     `;
         // 게시글 클릭 시 상세 페이지로 이동
@@ -62,12 +60,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 게시글 목록 불러오기 및 생성
     (async () => {
-        const posts = await fetchPosts();
-        const profiles = await getProfiles(); // 프로필 데이터 가져오기
+        const posts = await fetchPosts(); 
         postList.innerHTML = ""; // 기존 목록 초기화
 
         for (const post of posts) {
-            await createPostCard(post, profiles); // 프로필 데이터 전달
+            const comments = await getComments(post);
+            await createPostCard(post, comments); // 프로필 데이터 전달
         }
     })();
 
@@ -92,6 +90,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.querySelector(".logout").addEventListener("click", function() {
         localStorage.clear(); 
+    sessionStorage.clear();    
+    location.reload(); // 페이지 새로고침
         alert("로그아웃 되었습니다!");
         window.location.href = "../auth/login.html";  
       });

@@ -72,6 +72,8 @@ export async function deletePost(id) {
   try {
     const response = await fetch(`${BASE_URL}/posts/${id}`, {
       method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({id}),
     });
 
     if (!response.ok) throw new Error("게시글 삭제 실패");
@@ -151,7 +153,7 @@ export async function updatePassword(profileId, newPassword) {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ password: newPassword }) // 비밀번호만 업데이트
+            body: JSON.stringify({ id: profileId, password: newPassword }) // 비밀번호만 업데이트
         });
 
         if (!response.ok) {
@@ -188,9 +190,10 @@ export async function getProfile(profileId) {
 // 중복 이메일 또는 닉네임 체크
 export async function checkDuplicate(field, value) {
     try {
-        const response = await fetch(`${BASE_URL}/users?${field}=${value}`);
-        const data = await response.json();
-        return data.length > 0; // 중복이 있으면 true, 없으면 false 반환
+        const response = await fetch(`${BASE_URL}/users`);
+        const users = await response.json();
+        const user = users.find((u) => u[field] === value);
+        return user != undefined; // 중복이 있으면 true, 없으면 false 반환
     } catch (error) {
         console.error("중복 확인 실패:", error);
         alert("계정정보 중복 확인 중 오류가 발생했습니다.");
@@ -246,4 +249,17 @@ export async function loginUser(email, password) {
   const user = users.find((u) => u.email === email && u.password === password);
   console.log(user);
   return user || null; // 로그인 성공 시 사용자 객체 반환, 실패 시 null 반환
+}
+
+// 댓글 목록 가져오기 (GET)
+export async function getComments(post) {
+  try { 
+    const response = await fetch(`${BASE_URL}/posts/${post.id}/comments`); 
+    const comments = await response.json();
+    console.log(comments);
+    return comments;
+  } catch (error) {
+    console.error("댓글 목록 가져오기 실패:", error);
+    alert("댓글 목록을 가져오는 도중 오류가 발생했습니다.");
+  }
 }

@@ -29,7 +29,10 @@ export function renderHeader(backPath = "/pages/posts/list.html") {
   }
 
   document.querySelector(".logout").addEventListener("click", function() {
-    localStorage.clear(); 
+    localStorage.clear();  
+    sessionStorage.clear();    
+    location.reload(); // 페이지 새로고침
+
     alert("로그아웃 되었습니다!");
     window.location.href = "../auth/login.html"; 
   });

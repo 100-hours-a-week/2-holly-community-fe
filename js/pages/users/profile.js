@@ -70,12 +70,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const isValid = await validateNickname();
         if (!isValid) return;
 
+        const profileId = currentUser.id;
         // 업데이트할 프로필 데이터를 구성 (profileImageData가 있으면 추가)
         const profileData = {
+            id: profileId,
             nickname,
             ...(profileImageData ? { profileImage: profileImageData } : {})
         };
-        const profileId = currentUser.id;
         try {
             const result = await updateProfile(profileId, profileData);
             if (result) {
@@ -175,6 +176,8 @@ document.addEventListener("DOMContentLoaded", () => {
     
     document.querySelector(".logout").addEventListener("click", function() {
         localStorage.clear(); 
+    sessionStorage.clear();    
+    location.reload(); // 페이지 새로고침
         alert("로그아웃 되었습니다.");
         window.location.href = "../auth/login.html";  
       });
