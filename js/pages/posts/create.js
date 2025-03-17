@@ -35,7 +35,7 @@ fileInput.addEventListener("change", function () {
     document.getElementById("file-name").textContent = fileName;
 });
 
-// 파일을 base64 data URL로 변환하기
+// 파일 저장된 URL로 변환하기
 function readFileAsDataURL(file) {
     return new Promise((resolve, reject) => {
          const reader = new FileReader();
@@ -55,11 +55,9 @@ submitBtn.addEventListener("click", async (event) => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const title = titleInput.value;
     const content = contentInput.value;
-    const author = currentUser.nickname;
-    const email = currentUser.email;
+    const authorId = currentUser.id;  
     const created_at = new Date(Date.now()).toISOString();
-    const views = 0;
-    const comments = [];
+    const views = 0; 
     const likes = 0;
     // 파일 가져오기
     const file = fileInput.files[0];
@@ -74,7 +72,7 @@ submitBtn.addEventListener("click", async (event) => {
          }
     }
     const postData = {
-        email, author, title, content, created_at, likes, comments, views, 
+        authorId, title, content, created_at, likes, views, 
         ...(imgUrl ? { imgUrl } : {})
     };
 

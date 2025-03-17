@@ -20,7 +20,7 @@ export async function createPost(postData) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify( postData ),
-    }); 
+    });   
     if (!response.ok) {
       throw new Error(`서버 응답 실패: ${response.status}`);
     }
@@ -87,26 +87,60 @@ export async function deletePost(id) {
   }
 }
 
-// 게시글 좋아요 수 업데이트 (PATCH)
-export async function updatePostLikes(postId, likes) {
+// 게시글 좋아요 수 가져오기 (GET)
+export async function getLikes(postId) {
     try {
-        const response = await fetch(`${BASE_URL}/posts/${postId}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ likes }), // 좋아요 수를 업데이트
-        });
+        const response = await fetch(`${BASE_URL}/posts/${postId}/likes`);
 
         if (!response.ok) {
             throw new Error("게시글 업데이트 실패");
         }
         
-        return await response.json(); // 업데이트된 게시글 반환
+        return await response.json(); // 좋아요 개수 반환
     } catch (error) {
-        console.error("좋아요 업데이트 실패:", error);
-        alert("좋아요 업데이트 중 오류가 발생했습니다.");
+        console.error("좋아요 가져오기 실패:", error);
+        alert("좋아요 수를 가져오는 중 오류가 발생했습니다.");
     }
+}
+
+// 게시글 좋아요 (POST)
+export async function createLike(postId, userId) {
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${postId}/likes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify( {postId, userId} ),
+    });   
+    if (!response.ok) {
+      throw new Error(`서버 응답 실패: ${response.status}`);
+    }
+    const post = await response.json();
+    console.log(post);
+    return post;
+  } catch (error) {
+    console.error("좋아요 실패:", error);
+    alert("좋아요 처리 중 오류가 발생했습니다.");
+  }
+}
+
+// 게시글 좋아요 취소(DELETE)
+export async function deleteLike(postId, userId) {
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${postId}/likes/${userId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({postId, userId}),
+    });
+
+    if (!response.ok) throw new Error("좋아요 삭제 실패");
+
+    console.log(`게시글 ${postId}의 ${userId}가 누른 좋아요 삭제 완료`);
+    return true;
+  } catch (error) {
+    console.error("좋아요 삭제 중 오류 발생:", error);
+    alert("좋아요 취소 중 오류가 발생했습니다.");
+    return false;
+  }
 }
 
 // 프로필 목록 가져오기 (GET) 

@@ -1,6 +1,6 @@
 import { renderHeader } from "/js/components/header.js";
-import { fetchPost, deletePost, getComments, getProfile } from "../../api/request.js";
-import { BASE_URL } from "../../api/config.js"; 
+import { fetchPost, deletePost, getComments, getProfile, getLikes, createLike, deleteLike } from "../../api/request.js";
+import { BASE_URL } from "../../api/config.js";
 
 let postId;
 let postData = null;
@@ -20,6 +20,7 @@ async function loadPost() {
 
     try {
         postData = await fetchPost(postId);
+        const likes = await getLikes(postId);
         const comments = await getComments(postData);
         if (!postData) throw new Error("게시글 데이터를 찾을 수 없습니다.");
         // 조회수 증가
@@ -33,16 +34,16 @@ async function loadPost() {
         document.querySelector(".post-date").textContent = new Date(postData.createdAt)
             .toISOString()
             .slice(0, 19)
-            .replace("T", " "); 
-        if (postData.image){
-            document.querySelector(".text").innerHTML = formatContent(postData.content); 
+            .replace("T", " ");
+        if (postData.image) {
+            document.querySelector(".text").innerHTML = formatContent(postData.content);
             document.querySelector(".figure").src = postData.image;
-        } else{
-            document.querySelector(".post-content").innerHTML = formatContent(postData.content); 
+        } else {
+            document.querySelector(".post-content").innerHTML = formatContent(postData.content);
         }
 
         // 통계 업데이트
-        document.getElementById("like-count").innerHTML = `${postData.likes} <br> 좋아요`;
+        document.getElementById("like-count").innerHTML = `${likes} <br> 좋아요`;
         document.getElementById("view-count").innerHTML = `${postData.views} <br> 조회수`;
         document.getElementById("comment-count").innerHTML = `${comments.length} <br> 댓글`;
 
@@ -67,9 +68,9 @@ async function renderComments(comments) {
             <div class="comment-meta">
                 <span class="comment-author">${author.nickname}</span>
                 <span class="comment-date">${new Date(comment.createdAt)
-                    .toISOString()
-                    .slice(0, 19)
-                    .replace("T", " ")}</span>
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ")}</span>
             </div>
             <p class="comment-content">${comment.body}</p>
             <div class="comment-actions">
@@ -90,19 +91,20 @@ async function addComment() {
     if (!content) return alert("댓글 내용을 입력하세요.");
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
- 
+
     try {
         await fetch(`${BASE_URL}/posts/${postId}/comments`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 postId: postData.id,
-                authorId: currentUser.id, 
+                authorId: currentUser.id,
                 createdAt: new Date().toISOString(),
-                body: content })
-        }); 
+                body: content
+            })
+        });
         commentInput.value = "";
-        toggleCommentButton(); 
+        toggleCommentButton();
         updateCommentCount();
         const comments = await getComments(postData);
         renderComments(comments);
@@ -145,11 +147,11 @@ async function updateComment(commentId, newText) {
         await fetch(`${BASE_URL}/comments/${commentId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id:commentId, body:newText })
+            body: JSON.stringify({ id: commentId, body: newText })
         });
         const comments = await getComments(postData);
         renderComments(comments);
- 
+
     } catch (error) {
         console.error("댓글 수정 실패:", error);
     }
@@ -158,7 +160,7 @@ async function updateComment(commentId, newText) {
 // 댓글 삭제
 async function deleteComment(commentId) {
     if (!confirm("댓글을 삭제하시겠습니까?")) return;
- 
+
     try {
         await fetch(`${BASE_URL}/comments/${commentId}`, {
             method: "DELETE",
@@ -205,7 +207,7 @@ function initializeLikeButton() {
         likeButton.style.backgroundColor = "white";
     }
 }
-  
+
 // 이벤트 리스너 설정
 document.addEventListener("DOMContentLoaded", async () => {
     await loadPost();
@@ -250,13 +252,13 @@ function closeModal() {
 
 // 게시글 삭제 (확인 버튼 클릭 시)
 async function removePost() {
-    await deletePost(postId); 
+    await deletePost(postId);
     // 게시글 삭제 후 세션 스토리지에서 좋아요 상태 제거
     sessionStorage.removeItem(`liked_${postId}`);
     sessionStorage.removeItem(`viewed_${postId}`);
     setTimeout(() => {
         window.location.replace("/pages/posts/list.html");
-    }, 500); 
+    }, 500);
     alert("게시글이 삭제되었습니다.");
 }
 
@@ -270,7 +272,7 @@ async function increaseViewCount(postId, currentViews) {
         await fetch(`${BASE_URL}/posts/${postId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id:postId, views: updatedViews }),
+            body: JSON.stringify({ id: postId, views: updatedViews }),
         });
         // UI 업데이트
         document.getElementById("view-count").innerHTML = `${updatedViews} <br> 조회수`;
@@ -281,9 +283,10 @@ async function increaseViewCount(postId, currentViews) {
 
 // 좋아요 토글 함수 
 async function toggleLike() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const likeButton = document.getElementById("like-count");
     if (!likeButton) return;
-  
+
     let likeCount = parseInt(likeButton.textContent.match(/\d+/)[0]);
     isLiked = sessionStorage.getItem(`liked_${postId}`) === "true";
     if (isLiked) {
@@ -292,12 +295,16 @@ async function toggleLike() {
         isLiked = false;
         likeButton.classList.remove("liked");
         likeButton.style.backgroundColor = "white";
+
+        await deleteLike(postId, currentUser.id);
     } else {
         // 좋아요하지 않은 상태이면 좋아요 수 증가
         likeCount++;
         isLiked = true;
         likeButton.classList.add("liked");
         likeButton.style.backgroundColor = "#d2a21f";
+        
+        await createLike(postId, currentUser.id);
     }
 
     // 서버에 좋아요 수 업데이트 요청
@@ -305,8 +312,8 @@ async function toggleLike() {
         const response = await fetch(`${BASE_URL}/posts/${postId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id:postId, likes: likeCount }),
-        }); 
+            body: JSON.stringify({ id: postId, likes: likeCount }),
+        });
         if (response.ok) {
             likeButton.innerHTML = `${formatCount(likeCount)} <br>좋아요`;
             // 현재 좋아요 상태를 sessionStorage에 저장
@@ -335,7 +342,7 @@ window.closeModal = closeModal;
 window.removePost = removePost;
 window.toggleCommentButton = toggleCommentButton;
 window.editComment = editComment;
-window.deleteComment = deleteComment; 
+window.deleteComment = deleteComment;
 
 
 document.addEventListener("click", (event) => {

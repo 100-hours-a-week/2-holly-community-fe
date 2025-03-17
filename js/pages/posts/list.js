@@ -1,4 +1,4 @@
-import { fetchPosts, getProfiles, getComments, getProfile } from "../../api/request.js";
+import { fetchPosts, getLikes, getComments, getProfile } from "../../api/request.js";
 
 const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
 const profileImage = currentUser && currentUser.profileImage ? currentUser.profileImage : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
@@ -34,7 +34,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 게시글 카드 생성 함수  
     const createPostCard = async (post, comments) => {
-        const postStats = `좋아요 ${formatNumber(post.likes)} | 댓글 ${formatNumber(comments.length)} | 조회수 ${formatNumber(post.views)}`;
+        const likes = await getLikes(post.id);
+        const postStats = `좋아요 ${formatNumber(likes)} | 댓글 ${formatNumber(comments.length)} | 조회수 ${formatNumber(post.views)}`;
         let authorImgUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
 
         const user = await getProfile(post.authorId);  
