@@ -1,7 +1,7 @@
-import { getImage } from "../../api/request.js";
+import {getProfileImage} from "../api/request.js";
 export async function renderHeader(backPath = "/pages/posts/list.html") {
   const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
-  const profileImage = await getImage(currentUser.id, "user");
+  const profileImage = await getProfileImage(currentUser.id);
 
   const headerHTML = `
     <header class="header"> 

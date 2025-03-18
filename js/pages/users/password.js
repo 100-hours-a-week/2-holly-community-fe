@@ -1,6 +1,6 @@
-import { updatePassword } from "../../api/request.js";
+import { updatePassword, getProfileImage } from "../../api/request.js";
+
 const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
-const profileImage = currentUser && currentUser.profileImage ? currentUser.profileImage : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
 
 document.addEventListener("DOMContentLoaded", async () => {
     const passwordInput = document.getElementById("password");
@@ -9,10 +9,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const dropdownMenu = document.querySelector("#dropdown-menu");
     const mainBtn = document.querySelector(".homepage");
     const profileImg = document.querySelector("#profile-img");
-
+    
+    const profileImage = await getProfileImage(currentUser.id);
     profileImg.src = profileImage;
-
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const profileId = currentUser.id;
     
     // 홈페이지 이동

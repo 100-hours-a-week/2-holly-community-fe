@@ -1,4 +1,4 @@
-import { registerUser, checkDuplicate } from "../../api/request.js";
+import { registerUser, checkDuplicate, uploadProfileImage } from "../../api/request.js";
 
 document.addEventListener("DOMContentLoaded", function () {
     const pictureUpload = document.getElementById("picture-upload");
@@ -8,19 +8,21 @@ document.addEventListener("DOMContentLoaded", function () {
     const passwordCheckInput = document.getElementById("password-check");
     const nicknameInput = document.getElementById("nickname");
     const registerBtn = document.getElementById("register-btn");
+ 
 
-    let profileImageBase64 = ""; // 프로필 이미지를 저장할 변수
-
-    // 프로필 사진 업로드 처리
-    pictureUpload.addEventListener("change", function () {
-        const file = this.files[0];
+    // 프로필 사진 미리보기
+    pictureUpload.addEventListener("change", (event) => {
+        const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = function (e) {
-                profilePreview.innerHTML = `<img src="${e.target.result}" alt="프로필 사진">`;
-                profileImageBase64 = e.target.result; // Base64로 저장
+            reader.onload = (e) => {
+                // 업로드 전 미리보기
+                profilePreview.innerHTML = `
+                <img src="${e.target.result}" alt="프로필 사진">
+                <div class="profile-overlay">변경</div>
+            `;
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(file); // 파일 미리보기
         }
         validateForm();
     });
@@ -92,12 +94,12 @@ document.addEventListener("DOMContentLoaded", function () {
     function validateForm() {
         let isValid = true;
 
-        // if (!pictureUpload.files.length) {
-        //     setError("picture-error", "*프로필 사진을 추가해 주세요.");
-        //     isValid = false;
-        // } else {
-        //     clearError("picture-error");
-        // }
+        if (!pictureUpload.files.length) {
+            setError("picture-error", "*프로필 사진을 추가해 주세요.");
+            isValid = false;
+        } else {
+            clearError("picture-error");
+        }
 
         isValid =
             isValid &&
@@ -126,16 +128,32 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!registerBtn.disabled) {
             const email = emailInput.value;
             const password = passwordInput.value;
-            const nickname = nicknameInput.value;
-
+            const nickname = nicknameInput.value; 
             try {
-                const newUser = await registerUser(email, password, nickname, profileImageBase64);
-                if (newUser) {
-                    alert("회원가입 성공!");
-                    window.location.href = "../auth/login.html";
-                } else {
+                // 텍스트 데이터를 기반으로 사용자 생성
+                const newUser = await registerUser(email, password, nickname);
+                if (!newUser) {
                     alert("회원가입 중 오류가 발생했습니다.");
+                    return;
                 }
+                
+                // 파일 입력 필드에서 파일 가져오기  
+                const file = pictureUpload.files[0];
+                if (file) {
+                    // 새 사용자의 id로 프로필 이미지 업로드
+                    const response = await uploadProfileImage(file, newUser.id);
+                    if (response.ok) {
+                        const result = await response.json(); 
+                        profilePreview.innerHTML = `<img src="${result.filePath}" alt="프로필 사진">`;
+                    } else {
+                        console.error("파일 업로드 실패");
+                        alert("프로필 이미지 업로드 중 오류가 발생했습니다.");
+                        return;
+                    }
+                }
+                
+                alert("회원가입 성공!");
+                window.location.href = "../auth/login.html";
             } catch (error) {
                 console.error("회원가입 오류:", error);
                 alert("회원가입 중 오류가 발생했습니다.");

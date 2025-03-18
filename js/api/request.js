@@ -111,15 +111,18 @@ export async function createLike(postId, userId) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify( {postId, userId} ),
     });   
+    if(response.status === 409){
+      console.log("already liked");
+      return null;
+    }
     if (!response.ok) {
-      throw new Error(`서버 응답 실패: ${response.status}`);
+      throw new Error(`좋아요를 누를 수 없음: ${response.status}`);
     }
     const post = await response.json();
-    console.log(post);
     return post;
   } catch (error) {
     console.error("좋아요 실패:", error);
-    alert("좋아요 처리 중 오류가 발생했습니다.");
+    alert("좋아요를 누를 수 없습니다.");
   }
 }
 
@@ -139,6 +142,21 @@ export async function deleteLike(postId, userId) {
   } catch (error) {
     console.error("좋아요 삭제 중 오류 발생:", error);
     alert("좋아요 취소 중 오류가 발생했습니다.");
+    return false;
+  }
+}
+
+// 좋아요 여부 조회 (GET)
+export async function checkLikeStatus(postId, userId) {
+  try {
+    const response = await fetch(`${BASE_URL}/posts/${postId}/likes/${userId}`);
+    if (!response.ok) {
+      throw new Error(`좋아요 여부 조회 실패: ${response.status}`);
+    }
+    const isLiked = await response.json();
+    return isLiked;
+  } catch (error) {
+    console.error("좋아요 여부 조회 실패:", error);
     return false;
   }
 }
@@ -236,7 +254,7 @@ export async function checkDuplicate(field, value) {
 }
 
 // 회원가입 (POST)
-export async function registerUser(email, password, nickname, profileImage) {
+export async function registerUser(email, password, nickname) {
     try {
         // 이메일과 닉네임 중복 검사
         const isEmailDuplicate = await checkDuplicate("email", email);
@@ -258,8 +276,7 @@ export async function registerUser(email, password, nickname, profileImage) {
             body: JSON.stringify({
                 email,
                 password, // 비밀번호 해싱 필요 
-                nickname,
-                profileImage, // 프로필 이미지  
+                nickname 
             })
         });
 
@@ -276,6 +293,28 @@ export async function registerUser(email, password, nickname, profileImage) {
     }
 }
  
+// 회원탈퇴 (DELETE)
+export async function deleteUser(userId) {
+  try {
+    const response = await fetch(`${BASE_URL}/users/${userId}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) throw new Error("사용자 삭제 실패");
+
+    console.log(`사용자 ${userId} 삭제 완료`);
+    localStorage.clear();  
+    sessionStorage.clear();    
+    location.reload(); // 페이지 새로고침
+    alert("회원 탈퇴가 완료되었습니다.");
+    return true;
+  } catch (error) {
+    console.error("사용자 삭제 중 오류 발생:", error);
+    alert("탈퇴 처리 중 오류가 발생했습니다.");
+    return false;
+  }
+}
+
 export async function loginUser(email, password) {
   const response = await fetch(`${BASE_URL}/users`);
   const users = await response.json();
@@ -299,7 +338,7 @@ export async function getComments(post) {
 }
 
 // 게시글 이미지 파일을 서버로 업로드 
-export async function uploadPostImage(file) {
+export async function uploadPostImage(file, postId) {
   const formData = new FormData();
   formData.append("file", file); 
 
@@ -333,10 +372,10 @@ export async function uploadProfileImage(file, userId) {
   }
 }
  
-// 프로필 또는 게시물 이미지를 가져오기
-export async function getImage(id, type) {
+// 프로필 이미지 가져오기
+export async function getProfileImage(id) {
   try {
-      const response = await fetch(`${BASE_URL}/images/${type}/${id}`);
+      const response = await fetch(`${BASE_URL}/images/user/${id}`);
 
       if (!response.ok) {
           throw new Error("이미지를 불러올 수 없습니다.");
@@ -350,3 +389,23 @@ export async function getImage(id, type) {
       return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s"; 
   }
 }
+// 게시글 이미지 가져오기
+export async function getPostImage(id) {
+  try {
+      const response = await fetch(`${BASE_URL}/images/post/${id}`);
+
+      if (!response.ok ) {
+          throw new Error("이미지를 불러올 수 없습니다.");
+      }
+      if(response.status == 204) return null;
+      const blob = await response.blob(); 
+      const imageUrl = URL.createObjectURL(blob); 
+      return imageUrl;
+      
+  } catch (error) {
+      console.error("이미지 로드 실패:", error);
+      alert("이미지 로딩에 실패했습니다.")
+      return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s"; 
+  }
+}
+

@@ -1,8 +1,6 @@
-import { fetchPosts, getLikes, getComments, getProfile, getImage } from "../../api/request.js";
+import { fetchPosts, getLikes, getComments, getProfile, getProfileImage } from "../../api/request.js";
 
 const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
-const profileImage = currentUser && currentUser.profileImage ? currentUser.profileImage : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
-
 
 document.addEventListener("DOMContentLoaded", async () => {
     const postList = document.querySelector("#post-list");
@@ -10,6 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const dropdownMenu = document.querySelector("#dropdown-menu");
     const profileImg = document.querySelector("#profile-img");
 
+    const profileImage = await getProfileImage(currentUser.id);
     profileImg.src = profileImage;
     
     // 날짜 및 시간 포맷팅 함수
@@ -37,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const likes = await getLikes(post.id);
         const postStats = `좋아요 ${formatNumber(likes)} | 댓글 ${formatNumber(comments.length)} | 조회수 ${formatNumber(post.views)}`;
         const user = await getProfile(post.authorId);  
-        const authorImgUrl = await getImage(post.authorId, "user");
+        const authorImgUrl = await getProfileImage(post.authorId);
         
         const newPost = document.createElement("div");
         newPost.classList.add("post");

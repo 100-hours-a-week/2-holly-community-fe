@@ -1,4 +1,4 @@
-import { updateProfile, getProfiles, getImage, uploadProfileImage } from "../../api/request.js";
+import { updateProfile, getProfiles, getProfileImage, uploadProfileImage, deleteUser } from "../../api/request.js";
 
 const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
 
@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async() => {
     const currentImg = document.getElementById("current-img");
     const email = document.getElementById("email");
 
-    const profileImage = await getImage(currentUser.id, "user");
+    const profileImage = await getProfileImage(currentUser.id);
     profileImg.src = profileImage;
     currentImg.src = profileImage;
     email.textContent = currentUser.email;
@@ -46,8 +46,7 @@ document.addEventListener("DOMContentLoaded", async() => {
             return false;
         }
 
-        try {
-            // json-server의 db.json에서 프로필 데이터를 가져옴
+        try { 
             const profiles = await getProfiles();
             // 입력한 닉네임과 동일한 닉네임이 존재하는지 확인
             const nicknameExists = profiles.find((profile) => profile.nickname === nickname);
@@ -175,9 +174,9 @@ document.addEventListener("DOMContentLoaded", async() => {
     }
 
     // 회원 탈퇴 확정 기능
-    const quit = () => {
-        alert("회원 탈퇴가 완료되었습니다.");
-        window.location.href = "/pages/auth/login.html";
+    async function quit() {
+        const deleted = await deleteUser(currentUser.id);
+        if(deleted) window.location.href = "/pages/auth/login.html";
     };
 
     if (quitConfirmBtn) {

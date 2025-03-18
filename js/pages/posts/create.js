@@ -1,5 +1,5 @@
 import { renderHeader } from '/js/components/header.js';
-import { createPost } from "../../api/request.js";
+import { createPost, uploadPostImage } from "../../api/request.js";
 
 renderHeader();  // 공통 헤더 삽입 
 
@@ -34,11 +34,7 @@ fileInput.addEventListener("change", function () {
     const fileName = this.files.length > 0 ? this.files[0].name : "파일을 선택해주세요.";
     document.getElementById("file-name").textContent = fileName;
 });
-
-// 파일 저장된 URL로 변환하기
-function readFileAsDataURL(file) {
-
-}
+ 
 
 // 게시글 작성 및 제출 처리
 submitBtn.addEventListener("click", async (event) => {
@@ -46,28 +42,32 @@ submitBtn.addEventListener("click", async (event) => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const title = titleInput.value;
     const content = contentInput.value;
-    const authorId = currentUser.id;  
+    const authorId = currentUser.id;
     const created_at = new Date(Date.now()).toISOString();
-    const views = 0; 
+    const views = 0;
     const likes = 0;
-    // 파일 가져오기
-    const file = fileInput.files[0];
-
-    // 이미지 URL 
-    let imgUrl = "";
-    if (file) {
-         try { 
-            imgUrl = await readFileAsDataURL(file); 
-         } catch (error) {
-             console.error("이미지 처리 중 에러 발생:", error);
-         }
-    }
+    
     const postData = {
-        authorId, title, content, created_at, likes, views, 
-        ...(imgUrl ? { imgUrl } : {})
+        authorId, title, content, created_at, likes, views
     };
 
-    await createPost(postData);
+    const postedData = await createPost(postData); 
+
+    // 파일 가져오기
+    const file = fileInput.files[0];
+ 
+    if (file) {
+        const response = await uploadPostImage(file, postedData.id); // 서버에 파일 업로드
+        if (response.ok) {
+            const result = await response.json();
+            postedData.profileImage = result.filePath; // 서버에서 반환한 이미지 URL 추가
+            console.log(JSON.stringify(postedData));
+        } else {
+            console.error("파일 업로드 실패");
+            alert("게시글 이미지 업로드 중 오류가 발생했습니다.");
+            return;
+        }
+    }
     // 제목이나 내용이 비어있으면 에러 메시지 출력
     if (titleInput.value.trim() === "" || contentInput.value.trim() === "") {
         helperText.classList.remove("hidden");

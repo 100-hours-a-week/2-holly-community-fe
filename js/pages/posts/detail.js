@@ -1,5 +1,5 @@
+import { fetchPost, deletePost, getComments, getProfile, getLikes, createLike, deleteLike, getPostImage, checkLikeStatus } from "../../api/request.js";
 import { renderHeader } from "/js/components/header.js";
-import { fetchPost, deletePost, getComments, getProfile, getLikes, createLike, deleteLike } from "../../api/request.js";
 import { BASE_URL } from "../../api/config.js";
 
 let postId;
@@ -35,9 +35,12 @@ async function loadPost() {
             .toISOString()
             .slice(0, 19)
             .replace("T", " ");
-        if (postData.image) {
+
+        const image = await getPostImage(postData.id);   
+        console.log(image);
+        if (image) {
             document.querySelector(".text").innerHTML = formatContent(postData.content);
-            document.querySelector(".figure").src = postData.image;
+            document.querySelector(".figure").src = image;
         } else {
             document.querySelector(".post-content").innerHTML = formatContent(postData.content);
         }
@@ -193,26 +196,28 @@ function toggleCommentButton() {
 }
 
 // 좋아요 버튼 초기화 (페이지 로드 시)
-function initializeLikeButton() {
+async function initializeLikeButton() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const likeButton = document.getElementById("like-count");
-    if (!likeButton) return;
-    // sessionStorage에 저장된 좋아요 상태로 초기화
-    if (sessionStorage.getItem(`liked_${postId}`) === "true") {
-        isLiked = true;
-        likeButton.classList.add("liked");
+    if (!likeButton) return; 
+    // 서버에서 현재 좋아요 상태를 조회
+    isLiked = await checkLikeStatus(postId, currentUser.id);
+    console.log(isLiked);
+
+    if (isLiked) {
+        likeButton.classList.remove("liked");
         likeButton.style.backgroundColor = "#d2a21f";
     } else {
-        isLiked = false;
-        likeButton.classList.remove("liked");
+        likeButton.classList.add("liked");
         likeButton.style.backgroundColor = "white";
-    }
+    } 
 }
 
 // 이벤트 리스너 설정
 document.addEventListener("DOMContentLoaded", async () => {
-    await loadPost();
+    await loadPost(); 
     renderHeader();
-    initializeLikeButton(); // 좋아요 버튼 초기화
+    await initializeLikeButton(); // 좋아요 버튼 초기화
     document.querySelector(".comment-submit")?.addEventListener("click", addComment);
     document.querySelector(".comment-input")?.addEventListener("input", toggleCommentButton);
 
@@ -253,8 +258,7 @@ function closeModal() {
 // 게시글 삭제 (확인 버튼 클릭 시)
 async function removePost() {
     await deletePost(postId);
-    // 게시글 삭제 후 세션 스토리지에서 좋아요 상태 제거
-    sessionStorage.removeItem(`liked_${postId}`);
+    // 게시글 삭제 후 세션 스토리지에서 좋아요 상태 제거 
     sessionStorage.removeItem(`viewed_${postId}`);
     setTimeout(() => {
         window.location.replace("/pages/posts/list.html");
@@ -284,29 +288,32 @@ async function increaseViewCount(postId, currentViews) {
 // 좋아요 토글 함수 
 async function toggleLike() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return;
     const likeButton = document.getElementById("like-count");
     if (!likeButton) return;
 
     let likeCount = parseInt(likeButton.textContent.match(/\d+/)[0]);
-    isLiked = sessionStorage.getItem(`liked_${postId}`) === "true";
+    // 서버에서 현재 좋아요 상태를 조회
+    isLiked = await checkLikeStatus(postId, currentUser.id);
+    console.log(isLiked);
+
     if (isLiked) {
         // 이미 좋아요한 상태이면 취소 
+        await deleteLike(postId, currentUser.id);
         likeCount--;
         isLiked = false;
         likeButton.classList.remove("liked");
         likeButton.style.backgroundColor = "white";
-
-        await deleteLike(postId, currentUser.id);
     } else {
         // 좋아요하지 않은 상태이면 좋아요 수 증가
+        const increased = await createLike(postId, currentUser.id);
+        if(!increased) return;
         likeCount++;
         isLiked = true;
         likeButton.classList.add("liked");
         likeButton.style.backgroundColor = "#d2a21f";
-        
-        await createLike(postId, currentUser.id);
-    }
-
+    } 
+    
     // 서버에 좋아요 수 업데이트 요청
     try {
         const response = await fetch(`${BASE_URL}/posts/${postId}`, {
@@ -315,9 +322,7 @@ async function toggleLike() {
             body: JSON.stringify({ id: postId, likes: likeCount }),
         });
         if (response.ok) {
-            likeButton.innerHTML = `${formatCount(likeCount)} <br>좋아요`;
-            // 현재 좋아요 상태를 sessionStorage에 저장
-            sessionStorage.setItem(`liked_${postId}`, isLiked ? "true" : "false");
+            likeButton.innerHTML = `${formatCount(likeCount)} <br>좋아요`; 
         } else {
             console.error("좋아요 수 업데이트 실패");
             // 실패 시 상태 복원

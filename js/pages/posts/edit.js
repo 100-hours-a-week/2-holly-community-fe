@@ -1,21 +1,7 @@
 import { renderHeader } from "/js/components/header.js";
-import { updatePost, fetchPost } from "../../api/request.js";
+import { updatePost, fetchPost, uploadPostImage } from "../../api/request.js";
 
-let imgUrl = "";
-
-// 파일이 저장된 URL로 변환하기
-function fileAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-         const reader = new FileReader();
-         reader.onload = function(e) {
-              resolve(e.target.result);
-         };
-         reader.onerror = function(e) {
-              reject(e);
-         };
-         reader.readAsDataURL(file);
-    });
-} 
+let post;
 
 document.addEventListener("DOMContentLoaded", async () => {
     // 게시글 ID를 URL 파라미터에서 가져오기
@@ -34,7 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (postId) {
         try {
             // 기존 게시글 내용 불러오기
-            const post = await fetchPost(postId);
+            post = await fetchPost(postId);
             if (post) {
                 titleInput.value = post.title;
                 contentInput.value = post.content;
@@ -68,21 +54,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             const title = titleInput.value;
             const content = contentInput.value;
 
-             // 파일 가져오기
-             const file = fileInput.files[0];
-             if (file) {
-                 try {
-                     imgUrl = await fileAsDataURL(file);
-                 } catch (error) {
-                     console.error("이미지 처리 중 에러 발생:", error);
-                 }
-             }
+            // 파일 가져오기
+            const file = fileInput.files[0];
+            if (file) {
+                const response = await uploadPostImage(file, post.id); // 서버에 파일 업로드
+                if (response.ok) {
+                    const result = await response.json();
+                    post.postImage = result.filePath; // 서버에서 반환한 이미지 URL 추가
+                    console.log(JSON.stringify(post));
+                } else {
+                    console.error("파일 업로드 실패");
+                    alert("게시글 이미지 업로드 중 오류가 발생했습니다.");
+                    return;
+                }
+            }
 
-            // 업데이트할 데이터를 구성 (imgUrl이 있으면 추가)
+            // 업데이트할 데이터 구성하기 
             const updatedData = {
-                id:postId,
-                title, content,
-                ...(imgUrl ? { imgUrl } : {})
+                id: postId,
+                title, content
             };
 
             try {
