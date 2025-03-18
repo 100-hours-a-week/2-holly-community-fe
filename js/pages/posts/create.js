@@ -37,16 +37,7 @@ fileInput.addEventListener("change", function () {
 
 // 파일 저장된 URL로 변환하기
 function readFileAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-         const reader = new FileReader();
-         reader.onload = function(e) {
-              resolve(e.target.result);
-         };
-         reader.onerror = function(e) {
-              reject(e);
-         };
-         reader.readAsDataURL(file);
-    });
+
 }
 
 // 게시글 작성 및 제출 처리
@@ -62,7 +53,7 @@ submitBtn.addEventListener("click", async (event) => {
     // 파일 가져오기
     const file = fileInput.files[0];
 
-    // 기본 이미지 URL (파일이 없을 경우)
+    // 이미지 URL 
     let imgUrl = "";
     if (file) {
          try { 

@@ -1,9 +1,8 @@
-import { updateProfile, getProfiles } from "../../api/request.js";
+import { updateProfile, getProfiles, getImage, uploadProfileImage } from "../../api/request.js";
 
-const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-const profileImage = currentUser && currentUser.profileImage ? currentUser.profileImage : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
+const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async() => {
     const pictureUpload = document.getElementById("picture-upload");
     const profilePreview = document.getElementById("profile-preview");
     const quitBtn = document.querySelector(".quit");
@@ -14,15 +13,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const profileImg = document.querySelector(".profile-img");
     const dropdown = document.getElementById("dropdown-menu");
     const updateBtn = document.getElementById("update-btn");
-    const currentImg=document.getElementById("current-img");
+    const currentImg = document.getElementById("current-img");
     const email = document.getElementById("email");
 
+    const profileImage = await getImage(currentUser.id, "user");
     profileImg.src = profileImage;
-    currentImg.src=currentUser.profileImage; 
+    currentImg.src = profileImage;
     email.textContent = currentUser.email;
 
-    let nickname = "";
-    let profileImageData = ""; // 파일 업로드로 읽은 이미지 데이터를 저장
+    let nickname = ""; 
 
     // 닉네임 검증 함수 (json-server의 프로필 데이터를 기반으로 중복 검사)
     const validateNickname = async () => {
@@ -70,14 +69,25 @@ document.addEventListener("DOMContentLoaded", () => {
         const isValid = await validateNickname();
         if (!isValid) return;
 
-        const profileId = currentUser.id;
-        // 업데이트할 프로필 데이터를 구성 (profileImageData가 있으면 추가)
+        const profileId = currentUser.id; 
         const profileData = {
             id: profileId,
-            nickname,
-            ...(profileImageData ? { profileImage: profileImageData } : {})
+            nickname
         };
         try {
+            const file = pictureUpload.files[0];  
+            if (file) {
+                const response = await uploadProfileImage(file, currentUser.id); // 서버에 파일 업로드
+                if (response.ok) {
+                    const result = await response.json();
+                    profileData.profileImage = result.filePath; // 서버에서 반환한 이미지 URL 추가
+                    console.log(JSON.stringify(profileData));
+                } else {
+                    console.error("파일 업로드 실패");
+                    alert("프로필 이미지 업로드 중 오류가 발생했습니다.");
+                    return; 
+                }
+            }
             const result = await updateProfile(profileId, profileData);
             if (result) {
                 showToast();
@@ -110,16 +120,16 @@ document.addEventListener("DOMContentLoaded", () => {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    profileImageData = e.target.result; // Base64 데이터 저장
+                    // 업로드 전 미리보기
                     profilePreview.innerHTML = `
-                        <img src="${profileImageData}" alt="프로필 사진">
-                        <div class="profile-overlay">변경</div>
-                    `;
+                    <img src="${e.target.result}" alt="프로필 사진">
+                    <div class="profile-overlay">변경</div>
+                `;
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(file); // 파일 미리보기
             }
         });
-    }
+    } 
 
     // 홈페이지 이동
     if (mainBtn) {
@@ -173,12 +183,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (quitConfirmBtn) {
         quitConfirmBtn.addEventListener("click", quit);
     }
-    
-    document.querySelector(".logout").addEventListener("click", function() {
-        localStorage.clear(); 
-    sessionStorage.clear();    
-    location.reload(); // 페이지 새로고침
+
+    document.querySelector(".logout").addEventListener("click", function () {
+        localStorage.clear();
+        sessionStorage.clear();
+        location.reload(); // 페이지 새로고침
         alert("로그아웃 되었습니다.");
-        window.location.href = "../auth/login.html";  
-      });
+        window.location.href = "../auth/login.html";
+    });
 });

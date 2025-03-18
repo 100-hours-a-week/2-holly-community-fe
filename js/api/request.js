@@ -257,9 +257,9 @@ export async function registerUser(email, password, nickname, profileImage) {
             },
             body: JSON.stringify({
                 email,
-                password, // 실제 서비스에서는 비밀번호 해싱 필요 (bcrypt.js 사용 가능)
+                password, // 비밀번호 해싱 필요 
                 nickname,
-                profileImage, // 프로필 이미지 (Base64 형식)
+                profileImage, // 프로필 이미지  
             })
         });
 
@@ -295,5 +295,58 @@ export async function getComments(post) {
   } catch (error) {
     console.error("댓글 목록 가져오기 실패:", error);
     alert("댓글 목록을 가져오는 도중 오류가 발생했습니다.");
+  }
+}
+
+// 게시글 이미지 파일을 서버로 업로드 
+export async function uploadPostImage(file) {
+  const formData = new FormData();
+  formData.append("file", file); 
+
+  try {
+      const response = await fetch(`${BASE_URL}/images/post/${postId}`, { 
+          method: "POST",
+          body: formData,
+      });
+      return response;
+  } catch (error) {
+      console.error("업로드 중 오류 발생:", error);
+      alert("사진 업로드 중 오류가 발생했습니다.");
+  }
+}
+
+
+// 프로필 이미지 파일을 서버로 업로드 
+export async function uploadProfileImage(file, userId) {
+  const formData = new FormData();
+  formData.append("file", file); 
+
+  try {
+      const response = await fetch(`${BASE_URL}/images/user/${userId}`, { 
+          method: "POST",
+          body: formData,
+      });
+      return response;
+  } catch (error) {
+      console.error("업로드 중 오류 발생:", error);
+      alert("사진 업로드 중 오류가 발생했습니다.");
+  }
+}
+ 
+// 프로필 또는 게시물 이미지를 가져오기
+export async function getImage(id, type) {
+  try {
+      const response = await fetch(`${BASE_URL}/images/${type}/${id}`);
+
+      if (!response.ok) {
+          throw new Error("이미지를 불러올 수 없습니다.");
+      }
+      const blob = await response.blob(); 
+      const imageUrl = URL.createObjectURL(blob); 
+      return imageUrl;
+      
+  } catch (error) {
+      console.error("이미지 로드 실패:", error);
+      return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s"; 
   }
 }

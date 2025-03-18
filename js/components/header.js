@@ -1,7 +1,7 @@
-export function renderHeader(backPath = "/pages/posts/list.html") {
+import { getImage } from "../../api/request.js";
+export async function renderHeader(backPath = "/pages/posts/list.html") {
   const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
-
-  const profileImage = currentUser && currentUser.profileImage ? currentUser.profileImage : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw_HeSzHfBorKS4muw4IIeVvvRgnhyO8Gn8w&s";
+  const profileImage = await getImage(currentUser.id, "user");
 
   const headerHTML = `
     <header class="header"> 
