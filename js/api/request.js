@@ -339,69 +339,6 @@ export async function loginUser(email, password) {
   const user = response.json(); 
   return user;
 }
-/*
-export async function setToken(email, password) {
-  const response = await fetch(`${BASE_URL}/users/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!response.ok) {
-    console.error('로그인 실패:', response.statusText);
-    return null;
-  }
-  const token = await response.text();
-  console.log(token); 
-  if (response) {
-    localStorage.setItem('jwt', token); // JWT 토큰을 로컬 스토리지에 저장
-  } else {
-    console.error('토큰이 응답에 없습니다.');
-    return null;
-  }
-
-  return token;
-}
-
-
-export async function authFetch(url, options = {}) { 
-
-  if (!token) {
-    console.error('인증 토큰이 없습니다. 로그인하세요.');
-    return null;
-  }
-
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`, // JWT를 Authorization 헤더에 추가
-  };
-
-  const response = await fetch(url, {
-    ...options,
-    headers: { ...headers, ...options.headers }, // 기존 headers와 병합
-  });
-
-  if (response.status === 401) {
-    console.error('인증 실패: 토큰이 유효하지 않음');
-    return null;
-  }
-
-  return response.json();
-}
-
-
-export async function getUser() {
-  return authFetch(`${BASE_URL}/users/me`);
-}
-
-export function logoutUser() {
-  localStorage.removeItem('jwt'); // JWT 토큰 삭제
-  console.log('로그아웃되었습니다.');
-}
-
-*/
 
 // 댓글 목록 가져오기 (GET)
 export async function getComments(post) {
