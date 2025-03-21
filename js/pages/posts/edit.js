@@ -82,12 +82,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                         window.location.replace(`../../pages/posts/detail.html?postId=${postId}`);
                     }, 500);
                     alert("게시글 수정 완료");
-                } else {
-                    alert("게시글 수정 중 오류가 발생했습니다.");
-                }
+                } 
             } catch (error) {
-                console.error("게시글 수정 오류:", error);
-                alert("게시글 수정 중 문제가 발생했습니다.");
+                console.error("게시글 수정 오류:", error); 
             }
         });
     }

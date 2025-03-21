@@ -20,7 +20,7 @@ async function loadPost() {
 
     try {
         postData = await fetchPost(postId);
-        const likes = await getLikes(postId);
+        let likes = await getLikes(postId);
         const comments = await getComments(postData);
         if (!postData) throw new Error("게시글 데이터를 찾을 수 없습니다.");
         // 조회수 증가
@@ -36,7 +36,7 @@ async function loadPost() {
             .slice(0, 19)
             .replace("T", " ");
 
-        const image = await getPostImage(postData.id);   
+        const image = await getPostImage(postData.id);
         console.log(image);
         if (image) {
             document.querySelector(".text").innerHTML = formatContent(postData.content);
@@ -142,39 +142,64 @@ async function editComment(commentId) {
 }
 
 async function updateComment(commentId, newText) {
+    const token = localStorage.getItem('accessToken');
     if (!newText.trim()) {
         alert("댓글 내용을 입력하세요!");
         return;
     }
     try {
-        await fetch(`${BASE_URL}/comments/${commentId}`, {
+        const response=await fetch(`${BASE_URL}/comments/${commentId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ id: commentId, body: newText })
         });
-        const comments = await getComments(postData);
-        renderComments(comments);
-
+        if (response.status === 403) {
+            throw new Error('수정 권한 없음');
+        } else if (response.status === 404) {
+            throw new Error('댓글이 존재하지 않음');
+        } else if (!response.ok) { throw new Error("댓글 수정 실패"); }
+        else {
+            const comments = await getComments(postData);
+            renderComments(comments);
+        }
     } catch (error) {
         console.error("댓글 수정 실패:", error);
+        alert(error);
     }
 }
 
 // 댓글 삭제
 async function deleteComment(commentId) {
+    const token = localStorage.getItem('accessToken');
     if (!confirm("댓글을 삭제하시겠습니까?")) return;
 
     try {
-        await fetch(`${BASE_URL}/comments/${commentId}`, {
+        const response = await fetch(`${BASE_URL}/comments/${commentId}`, {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ id: commentId })
         });
-        updateCommentCount();
-        const comments = await getComments(postData);
-        renderComments(comments);
+        if (response.status === 403) {
+            throw new Error('삭제 권한 없음');
+        } else if (response.status === 404) {
+            throw new Error('댓글이 존재하지 않음');
+        } else if (!response.ok) { throw new Error("댓글 삭제 실패"); }
+        else {
+            console.log(`댓글 ${commentId} 삭제 완료`);
+
+            updateCommentCount();
+            const comments = await getComments(postData);
+            renderComments(comments);
+        }
     } catch (error) {
         console.error("댓글 삭제 실패:", error);
+        alert(error);
     }
 }
 
@@ -199,7 +224,7 @@ function toggleCommentButton() {
 async function initializeLikeButton() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const likeButton = document.getElementById("like-count");
-    if (!likeButton) return; 
+    if (!likeButton) return;
     // 서버에서 현재 좋아요 상태를 조회
     isLiked = await checkLikeStatus(postId, currentUser.id);
     console.log(isLiked);
@@ -210,12 +235,12 @@ async function initializeLikeButton() {
     } else {
         likeButton.classList.add("liked");
         likeButton.style.backgroundColor = "white";
-    } 
+    }
 }
 
 // 이벤트 리스너 설정
 document.addEventListener("DOMContentLoaded", async () => {
-    await loadPost(); 
+    await loadPost();
     renderHeader();
     await initializeLikeButton(); // 좋아요 버튼 초기화
     document.querySelector(".comment-submit")?.addEventListener("click", addComment);
@@ -263,7 +288,6 @@ async function removePost() {
     setTimeout(() => {
         window.location.replace("/pages/posts/list.html");
     }, 500);
-    alert("게시글이 삭제되었습니다.");
 }
 
 /* 조회수 및 좋아요 */
@@ -273,9 +297,11 @@ async function increaseViewCount(postId, currentViews) {
         // 조회수 증가
         const updatedViews = currentViews + 1;
         // 서버에 조회수 업데이트 요청
-        await fetch(`${BASE_URL}/posts/${postId}`, {
+        await fetch(`${BASE_URL}/posts/${postId}/views`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({ id: postId, views: updatedViews }),
         });
         // UI 업데이트
@@ -304,33 +330,16 @@ async function toggleLike() {
         isLiked = false;
         likeButton.classList.remove("liked");
         likeButton.style.backgroundColor = "white";
+        await loadPost();
     } else {
         // 좋아요하지 않은 상태이면 좋아요 수 증가
         const increased = await createLike(postId, currentUser.id);
-        if(!increased) return;
+        if (!increased) return;
         likeCount++;
         isLiked = true;
         likeButton.classList.add("liked");
         likeButton.style.backgroundColor = "#d2a21f";
-    } 
-    
-    // 서버에 좋아요 수 업데이트 요청
-    try {
-        const response = await fetch(`${BASE_URL}/posts/${postId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: postId, likes: likeCount }),
-        });
-        if (response.ok) {
-            likeButton.innerHTML = `${formatCount(likeCount)} <br>좋아요`; 
-        } else {
-            console.error("좋아요 수 업데이트 실패");
-            // 실패 시 상태 복원
-            isLiked = !isLiked;
-        }
-    } catch (error) {
-        console.error("좋아요 수 업데이트 실패:", error);
-        isLiked = !isLiked;
+        await loadPost();
     }
 }
 

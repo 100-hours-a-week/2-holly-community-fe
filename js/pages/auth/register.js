@@ -18,8 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
             reader.onload = (e) => {
                 // 업로드 전 미리보기
                 profilePreview.innerHTML = `
-                <img src="${e.target.result}" alt="프로필 사진">
-                <div class="profile-overlay">변경</div>
+                <img src="${e.target.result}" alt="프로필 사진"> 
             `;
             };
             reader.readAsDataURL(file); // 파일 미리보기
