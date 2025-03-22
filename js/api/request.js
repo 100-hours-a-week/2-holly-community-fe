@@ -193,48 +193,58 @@ export async function getProfiles() {
 
 // 프로필 업데이트 (PATCH) 
 export async function updateProfile(profileId, profileData) {
+  const token = localStorage.getItem('accessToken');
   try {
     const response = await fetch(`${BASE_URL}/users/${profileId}`, {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(profileData)
     });
 
-    if (!response.ok) {
-      throw new Error("프로필 업데이트 실패");
-    }
-
+    if (response.status === 403) {
+      throw new Error('수정 권한 없음');
+    } else if (response.status === 404) {
+      throw new Error('사용자가 존재하지 않음');
+    } else if (!response.ok) { throw new Error("프로필 수정 실패"); }
+    else {
     const updatedProfile = await response.json();
     return updatedProfile;
+    }
   } catch (error) {
     console.error("프로필 업데이트 실패:", error);
-    alert("프로필 업데이트 중 오류가 발생했습니다.");
+    alert(error);
     return null;
   }
 }
 
 // 비밀번호 변경 (PATCH)
 export async function updatePassword(profileId, newPassword) {
+
+  const token = localStorage.getItem('accessToken');
   try {
     const response = await fetch(`${BASE_URL}/users/${profileId}`, {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ id: profileId, password: newPassword }) // 비밀번호만 업데이트
     });
-
-    if (!response.ok) {
-      throw new Error("비밀번호 변경 실패");
-    }
-
+    if (response.status === 403) {
+      throw new Error('수정 권한 없음');
+    } else if (response.status === 404) {
+      throw new Error('사용자가 존재하지 않음');
+    } else if (!response.ok) { throw new Error("비밀번호 수정 실패"); }
+    else {
     const updatedProfile = await response.json();
     return updatedProfile;
+    }
   } catch (error) {
     console.error("비밀번호 변경 실패:", error);
-    alert("비밀번호 변경 중 오류가 발생했습니다.");
+    alert(error);
     return null;
   }
 }
@@ -313,27 +323,35 @@ export async function registerUser(email, password, nickname) {
 
 // 회원탈퇴 (DELETE)
 export async function deleteUser(userId) {
+  const token = localStorage.getItem('accessToken');
   try {
     const response = await fetch(`${BASE_URL}/users/${userId}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
-
-    if (!response.ok) throw new Error("사용자 삭제 실패");
-
+    if (response.status === 403) {
+      throw new Error('수정 권한 없음');
+    } else if (response.status === 404) {
+      throw new Error('사용자가 존재하지 않음');
+    } else if (!response.ok) { throw new Error("사용자 삭제 실패"); }
+    else {
     console.log(`사용자 ${userId} 삭제 완료`);
     localStorage.clear();
     sessionStorage.clear();
     location.reload(); // 페이지 새로고침
     alert("회원 탈퇴가 완료되었습니다.");
     return true;
+    }
   } catch (error) {
     console.error("사용자 삭제 중 오류 발생:", error);
-    alert("탈퇴 처리 중 오류가 발생했습니다.");
+    alert(error);
     return false;
   }
 }
 
-
+// 로그인(POST)
 export async function loginUser(email, password) {
   try {
     const response = await fetch(`${BASE_URL}/users/login`, {

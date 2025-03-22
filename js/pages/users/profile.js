@@ -74,6 +74,14 @@ document.addEventListener("DOMContentLoaded", async() => {
             nickname
         };
         try {
+            const result = await updateProfile(profileId, profileData);
+            if (result) {
+                showToast();
+                // 업데이트된 사용자 정보 localStorage에 저장 
+                localStorage.setItem("currentUser", JSON.stringify(result));
+            } else {
+                alert("프로필 수정 중 오류가 발생했습니다.");
+            }
             const file = pictureUpload.files[0];  
             if (file) {
                 const response = await uploadProfileImage(file, currentUser.id); // 서버에 파일 업로드
@@ -86,14 +94,6 @@ document.addEventListener("DOMContentLoaded", async() => {
                     alert("프로필 이미지 업로드 중 오류가 발생했습니다.");
                     return; 
                 }
-            }
-            const result = await updateProfile(profileId, profileData);
-            if (result) {
-                showToast();
-                // 업데이트된 사용자 정보 localStorage에 저장 
-                localStorage.setItem("currentUser", JSON.stringify(result));
-            } else {
-                alert("프로필 수정 중 오류가 발생했습니다.");
             }
         } catch (error) {
             console.error("프로필 수정 중 오류: ", error);
