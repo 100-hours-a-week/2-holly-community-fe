@@ -1,4 +1,4 @@
-import { fetchPosts, getLikes, getComments, getProfile, getProfileImage } from "../../api/request.js";
+import { fetchPosts, getComments, getProfile, getProfileImage } from "../../api/request.js";
 
 const currentUser = JSON.parse(localStorage.getItem('currentUser')); 
 
@@ -32,9 +32,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // 게시글 카드 생성 함수  
-    const createPostCard = async (post, comments) => {
-        const likes = await getLikes(post.id);
-        const postStats = `좋아요 ${formatNumber(likes)} | 댓글 ${formatNumber(comments.length)} | 조회수 ${formatNumber(post.views)}`;
+    const createPostCard = async (post, comments) => { 
+        const postStats = `좋아요 ${formatNumber(post.likes)} | 댓글 ${formatNumber(comments.length)} | 조회수 ${formatNumber(post.views)}`;
         const user = await getProfile(post.authorId);  
         const authorImgUrl = await getProfileImage(post.authorId);
         
@@ -58,14 +57,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 게시글 목록 불러오기 및 생성
     (async () => {
-        const posts = await fetchPosts(); 
-        postList.innerHTML = ""; // 기존 목록 초기화
-
-        for (const post of posts) {
-            const comments = await getComments(post);
-            await createPostCard(post, comments); // 프로필 데이터 전달
-        }
-    })();
+        const posts = await fetchPosts();
+        postList.innerHTML = "";
+    
+        // 댓글 요청을 병렬로 처리하여 불필요한 지연 방지
+        const commentPromises = posts.map(post => getComments(post));
+        const commentsArray = await Promise.all(commentPromises); // 병렬 요청
+    
+        posts.forEach((post, index) => {
+            createPostCard(post, commentsArray[index]); // 병렬로 가져온 데이터 적용
+        });
+    })();    
 
 
     // 게시글 작성 버튼 이벤트

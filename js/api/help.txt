@@ -1,8 +1,0 @@
-
-const token = localStorage.getItem('accessToken');
-
-'Authorization': `Bearer ${token}`
-
-회원 탈퇴, 비밀번호 변경, 프로필 업데이트
-
-게시글 수정, 삭제, 댓글 수정, 삭제 

@@ -106,22 +106,6 @@ export async function deletePost(id) {
   }
 }
 
-// 게시글 좋아요 수 가져오기 (GET)
-export async function getLikes(postId) {
-  try {
-    const response = await fetch(`${BASE_URL}/posts/${postId}/likes`);
-
-    if (!response.ok) {
-      throw new Error("게시글 업데이트 실패");
-    }
-
-    return await response.json(); // 좋아요 개수 반환
-  } catch (error) {
-    console.error("좋아요 가져오기 실패:", error);
-    alert("좋아요 수를 가져오는 중 오류가 발생했습니다.");
-  }
-}
-
 // 게시글 좋아요 (POST)
 export async function createLike(postId, userId) {
   try {
@@ -140,7 +124,7 @@ export async function createLike(postId, userId) {
     return post;
   } catch (error) {
     console.error("좋아요 실패:", error);
-    alert("좋아요를 누를 수 없습니다.");
+    alert(error);
   }
 }
 

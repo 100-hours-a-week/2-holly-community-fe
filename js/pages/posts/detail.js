@@ -1,4 +1,4 @@
-import { fetchPost, deletePost, getComments, getProfile, getLikes, createLike, deleteLike, getPostImage, checkLikeStatus } from "../../api/request.js";
+import { fetchPost, deletePost, getComments, getProfile, createLike, deleteLike, getPostImage, checkLikeStatus } from "../../api/request.js";
 import { renderHeader } from "/js/components/header.js";
 import { BASE_URL } from "../../api/config.js";
 
@@ -19,8 +19,7 @@ async function loadPost() {
     }
 
     try {
-        postData = await fetchPost(postId);
-        let likes = await getLikes(postId);
+        postData = await fetchPost(postId); 
         const comments = await getComments(postData);
         if (!postData) throw new Error("게시글 데이터를 찾을 수 없습니다.");
         // 조회수 증가
@@ -46,7 +45,7 @@ async function loadPost() {
         }
 
         // 통계 업데이트
-        document.getElementById("like-count").innerHTML = `${likes} <br> 좋아요`;
+        document.getElementById("like-count").innerHTML = `${postData.likes} <br> 좋아요`;
         document.getElementById("view-count").innerHTML = `${postData.views} <br> 조회수`;
         document.getElementById("comment-count").innerHTML = `${comments.length} <br> 댓글`;
 
@@ -253,6 +252,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (event.target.matches(".delete-comment")) {
             deleteComment(Number(event.target.dataset.id));
         }
+        if (event.target.matches(".like-count")){
+            toggleLike();
+        }
     });
 });
 
@@ -316,9 +318,11 @@ async function toggleLike() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return;
     const likeButton = document.getElementById("like-count");
-    if (!likeButton) return;
-
-    let likeCount = parseInt(likeButton.textContent.match(/\d+/)[0]);
+    if (!likeButton) return; 
+    
+    postData = await fetchPost(postId); 
+    // let likeCount = parseInt(likeButton.textContent.match(/\d+/)[0]);
+    let likeCount = postData.likes;
     // 서버에서 현재 좋아요 상태를 조회
     isLiked = await checkLikeStatus(postId, currentUser.id);
     console.log(isLiked);
